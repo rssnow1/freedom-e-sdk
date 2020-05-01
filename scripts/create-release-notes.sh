@@ -12,10 +12,17 @@ fi
 project=$1; shift 1;
 current_release=$1; shift 1;
 
-# Get the most recent previous tag with git-describe. If this is
-# the first tag in the repository, then this will return a commit
-# hash (because of the --always flag).
-last_release=$(git describe --tags --always HEAD~)
+# Get the most recent tag associated with a full release. This uses the criteria:
+#  1. tag starts with a 'v'
+#  2. tag does not contain 'rc' or 'RC'
+last_full_release=$(git tag --sort=creatordate | grep "^v.*" | grep -Ev "(rc|RC)" | tail -n 1)
+
+# The merge-base is the most-recent commit on the current branch which shares
+# common ancestry with the last full release.
+merge_base=$(git merge-base ${last_full_release} HEAD)
+
+# Describe the merge-base commit
+last_release=$(git describe --tags ${merge_base})
 
 echo "# Release notes for ${project} ${current_release}"
 echo "## Statistics since ${last_release}"
